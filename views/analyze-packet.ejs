@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 Interactive Packet Analysis Dashboard</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: rgb(102, 255, 153); /* Light green background */
+            color: #2c3e50;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 2.5rem;
+            color: #007bff; /* Blue title */
+            letter-spacing: 1px;
+        }
+
+        /* Chart Container Styling */
+        .chart-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two columns */
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .chart-box {
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .chart-box:hover {
+            transform: scale(1.05);
+        }
+
+        canvas {
+            max-height: 350px; /* Limit height to avoid oversized charts */
+        }
+
+        /* Media Query for Small Screens */
+        @media (max-width: 768px) {
+            .chart-container {
+                grid-template-columns: 1fr; /* One column layout for small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌐 Packet Analysis Dashboard</h1>
+
+    <div class="container">
+        <div class="chart-container">
+            <div class="chart-box">
+                <h2 style="text-align:center;">Attack Type Distribution (Pie Chart)</h2>
+                <canvas id="attackPieChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2 style="text-align:center;">Trend of Attacks Over Time (Line Chart)</h2>
+                <canvas id="attackTrendChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2 style="text-align:center;">Impact by Attack Type (Bar Chart)</h2>
+                <canvas id="attackImpactChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2 style="text-align:center;">Severity of Attacks (Stacked Bar Chart)</h2>
+                <canvas id="attackSeverityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const packets = <%- JSON.stringify(packets) %>;
+
+        // Data initialization
+        const attackCounts = {};
+        const attackImpact = {};
+        const severityCounts = { Low: 0, Medium: 0, High: 0 };
+        const attackTrendData = {};
+
+        packets.forEach(packet => {
+    // Set severity based on attack type
+    let severity = 'High'; // Default severity
+    if (packet.attack === 'satun.') {
+        severity = 'Low';
+    } else if (packet.attack === 'smurf.' || packet.attack === 'portsweep.') {
+        severity = 'Medium';
+    }
+
+    // Increment the severity counts
+    severityCounts[severity]++;
+
+    // Increment attack counts and impact
+    attackCounts[packet.attack] = (attackCounts[packet.attack] || 0) + 1;
+    attackImpact[packet.attack] = (attackImpact[packet.attack] || 0) + 1;
+
+    // Calculate the time interval in minutes from the current time
+    const currentTime = new Date();
+    const attackTime = new Date(packet.timestamp);
+    const timeDiffInMinutes = Math.floor((currentTime - attackTime) / 60000); // Difference in minutes
+    attackTrendData[timeDiffInMinutes] = (attackTrendData[timeDiffInMinutes] || 0) + 1;
+});
+
+
+        const chartColors = ['#4BC0C0', '#FF6384', '#FFCE56', '#36A2EB', '#9966FF'];
+        const borderColors = ['#3BAF9B', '#FF577F', '#FFC107', '#2B9CD9', '#8251D0'];
+
+        // Pie Chart (Attack Type Distribution)
+        new Chart(document.getElementById('attackPieChart').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(attackCounts),
+                datasets: [{
+                    data: Object.values(attackCounts),
+                    backgroundColor: chartColors.slice(0, Object.keys(attackCounts).length),
+                    borderColor: borderColors.slice(0, Object.keys(attackCounts).length),
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Line Chart (Trend of Attacks Over Time)
+        new Chart(document.getElementById('attackTrendChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: Object.keys(attackTrendData),
+                datasets: [{
+                    label: 'Number of Attacks',
+                    data: Object.values(attackTrendData),
+                    borderColor: '#36A2EB',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Time (Minutes Ago)' } },
+                    y: { title: { display: true, text: 'Number of Attacks' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // Bar Chart (Impact by Attack Type)
+        new Chart(document.getElementById('attackImpactChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(attackImpact),
+                datasets: [{
+                    label: 'Impact Score',
+                    data: Object.values(attackImpact),
+                    backgroundColor: '#FFCE56',
+                    borderColor: '#FFB300',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Stacked Bar Chart (Severity of Attacks)
+        new Chart(document.getElementById('attackSeverityChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Low', 'Medium', 'High'],
+                datasets: [
+                    {
+                        label: 'Low Severity',
+                        data: [severityCounts.Low],
+                        backgroundColor: '#4BC0C0',
+                        borderColor: '#3BAF9B',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Medium Severity',
+                        data: [severityCounts.Medium],
+                        backgroundColor: '#FFCE56',
+                        borderColor: '#FFC107',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'High Severity',
+                        data: [severityCounts.High],
+                        backgroundColor: '#FF6384',
+                        borderColor: '#FF577F',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Severity Levels'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

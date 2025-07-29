@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: rgb(102, 255, 153);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .chart-container {
+            width: 50%; /* Keep it responsive */
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two charts per row */
+            gap: 5px; /* Spacing between charts */
+        }
+        canvas {
+            background-color: white; /* White background for the charts */
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            height: 400px; /* Reduced height for compactness */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Machine Learning Model Results</h1>
+    <div class="chart-container">
+        <canvas id="accuracyChart"></canvas>
+        <canvas id="f1ScoreChart"></canvas>
+    </div>
+    
+    <script>
+        const results = <%- JSON.stringify(results) %>;
+
+        // Data preparation
+        const algorithms = results.map(result => result.algorithm);
+        const accuracyScores = results.map(result => result.scores[0]); // Accuracy is the first score
+        const f1Scores = results.map(result => result.scores[3]); // F1-score is the fourth score
+
+        // Accuracy Chart
+        const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+        const accuracyChart = new Chart(accuracyCtx, {
+            type: 'bar',
+            data: {
+                labels: algorithms,
+                datasets: [{
+                    label: 'Accuracy',
+                    data: accuracyScores,
+                    backgroundColor: 'rgba(0, 123, 255, 0.8)', // Bright Blue
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Allow height to be defined
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        min: 0.9, // Minimum value to focus on scores above 0.9
+                        max: 1.0, // Maximum value
+                        ticks: {
+                            stepSize: 0.01, // Set step size for clearer differences
+                        },
+                        title: {
+                            display: true,
+                            text: 'Accuracy',
+                            font: {
+                                size: 14,
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toFixed(3)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // F1 Score Chart
+        const f1Ctx = document.getElementById('f1ScoreChart').getContext('2d');
+        const f1ScoreChart = new Chart(f1Ctx, {
+            type: 'bar',
+            data: {
+                labels: algorithms,
+                datasets: [{
+                    label: 'F1 Score',
+                    data: f1Scores,
+                    backgroundColor: 'rgba(255, 193, 7, 0.8)', // Bright Yellow
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Allow height to be defined
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        min: 0.9, // Minimum value to focus on scores above 0.9
+                        max: 1.0, // Maximum value
+                        ticks: {
+                            stepSize: 0.01, // Set step size for clearer differences
+                        },
+                        title: {
+                            display: true,
+                            text: 'F1 Score',
+                            font: {
+                                size: 14,
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toFixed(3)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
